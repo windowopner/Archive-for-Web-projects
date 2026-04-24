@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Archive</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&family=Noto+Serif+SC:wght@700&display=swap"
+        rel="stylesheet">
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.39/dist/lenis.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+:root {
+    --bg:          #070707;
+    --text:        #f2f2f2;
+    --accent:      #4a4a4a;
+    --accent-warm: #888;
+    --red:         #FF2A2A;
+    --border:      rgba(255, 255, 255, 0.1);
+    --border-mid:  rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================
+   Reset & Base
+   ========================================= */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html { scroll-behavior: auto; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    cursor: none;
+}
+
+h1, h2, h3, .logo, .menu_link, .loader_title, .artist-name, .journal-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* =========================================
+   Kinetic Text
+   ========================================= */
+.kinetic-text {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.char-wrap {
+    overflow: hidden;
+    display: inline-block;
+    padding: 0.1em 0.15em 0.1em 0.1em;
+    margin: -0.1em -0.15em -0.1em -0.1em;
+}
+
+.char {
+    display: inline-block;
+    transform: translateY(105%);
+}
+
+/* =========================================
+   Custom Cursor
+   ========================================= */
+.cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 12px; height: 12px;
+    background-color: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10000;
+    mix-blend-mode: difference;
+    transition:
+        width  0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cursor.hover-hover {
+    width: 60px;
+    height: 60px;
+}
+
+.cursor.hover-canvas {
+    width: 90px;
+    height: 90px;
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* =========================================
+   Filmic Noise
+   ========================================= */
+.noise {
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200vw; height: 200vh;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.04;
+    background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+    animation: noiseAnim 0.2s infinite steps(2);
+}
+
+@keyframes noiseAnim {
+    0%   { transform: translate(0, 0); }
+    10%  { transform: translate(-5%, -5%); }
+    20%  { transform: translate(-10%, 5%); }
+    30%  { transform: translate(5%, -10%); }
+    40%  { transform: translate(-5%, 15%); }
+    50%  { transform: translate(-10%, 5%); }
+    60%  { transform: translate(15%, 0); }
+    70%  { transform: translate(0, 10%); }
+    80%  { transform: translate(-15%, 0); }
+    90%  { transform: translate(10%, 5%); }
+    100% { transform: translate(5%, 0); }
+}
+
+/* =========================================
+   Loader
+   ========================================= */
+.loader {
+    position: fixed;
+    inset: 0;
+    background-color: var(--bg);
+    color: var(--text);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.loader_title {
+    position: fixed;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5vw;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-style: italic;
+    z-index: 10000;
+    margin: 0;
+    pointer-events: none;
+    color: #fff;
+    mix-blend-mode: difference;
+    width: 100%;
+    text-align: center;
+}
+
+.loader_line_container {
+    width: 250px;
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    margin-bottom: 2rem;
+    margin-top: 10vh;
+}
+
+.loader_line {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 0%;
+    background: #fff;
+    transition: none;
+}
+
+.loader_sub {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* =========================================
+   Header
+   ========================================= */
+.header {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    padding: 2.5rem 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    mix-blend-mode: difference;
+    color: #fff;
+}
+
+.logo {
+    font-size: 1.8rem;
+    letter-spacing: 0.05em;
+}
+
+.header_nav {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    opacity: 0.5;
+}
+
+.menu_toggle {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: none;
+    font-family: 'Inter', sans-serif;
+    padding: 0.5rem 0;
+    position: relative;
+}
+
+.menu_toggle::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.menu_toggle:hover::after {
+    transform: scaleX(1);
+}
+
+/* =========================================
+   Fullscreen Menu
+   ========================================= */
+.menu {
+    position: fixed;
+    top: -100vh;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #e2e2e2;
+    color: #070707;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.menu_content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+}
+
+.menu_link {
+    font-size: clamp(3rem, 5vw, 6rem);
+    font-style: italic;
+    line-height: 1.1;
+    display: block;
+    padding: 0.2em 0;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.menu_link::before {
+    content: '';
+    position: absolute;
+    left: -2rem; top: 50%;
+    transform: translateY(-50%) scaleX(0);
+    transform-origin: left;
+    width: 1.5rem;
+    height: 1px;
+    background: currentColor;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.menu_link:hover::before {
+    transform: translateY(-50%) scaleX(1);
+}
+
+.menu_footer {
+    position: absolute;
+    bottom: 3rem;
+    left: 4rem;
+    right: 4rem;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.4;
+}
+
+/* =========================================
+   Scroll Indicator
+   ========================================= */
+.scroll-indicator {
+    position: fixed;
+    bottom: 3rem;
+    right: 4rem;
+    z-index: 100;
+    mix-blend-mode: difference;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.scroll-indicator.visible { opacity: 1; }
+
+.scroll-indicator_line {
+    width: 1px;
+    height: 50px;
+    background: rgba(255,255,255,0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.scroll-indicator_line::after {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    animation: scrollLine 1.5s ease-in-out infinite;
+}
+
+@keyframes scrollLine {
+    0%   { top: -100%; }
+    100% { top: 100%; }
+}
+
+/* =========================================
+   WebGL Canvas & Main
+   ========================================= */
+.webgl {
+    position: fixed;
+    inset: 0;
+    width: 100vw; height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.main {
+    position: relative;
+    z-index: 1;
+}
+
+/* =========================================
+   Hero
+   ========================================= */
+.hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+}
+
+.hero_eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    opacity: 0;
+}
+
+.hero_title {
+    font-size: clamp(3rem, 6vw, 8rem);
+    font-style: italic;
+    line-height: 1;
+}
+
+.hero_subtitle {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+}
+
+/* =========================================
+   Gallery
+   ========================================= */
+.gallery-wrapper {
+    position: relative;
+    width: 100vw;
+}
+
+.gallery.hidden { display: none; }
+
+.gallery {
+    padding: 10vh 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25vh;
+}
+
+.gallery-item {
+    width: 55vw;
+    height: 70vh;
+    cursor: none;
+    position: relative;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3rem;
+    overflow: hidden;
+    background: transparent;
+    transition: border-color 0.4s ease;
+}
+
+.gallery-item:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.work-header {
+    display: flex;
+    justify-content: space-between;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    border-bottom: 1px solid var(--border-mid);
+    padding-bottom: 1rem;
+}
+
+.work-id    { color: var(--text); }
+.work-meta  { color: var(--accent); }
+
+.work-body {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.work-title {
+    font-size: clamp(3rem, 8vw, 10rem);
+    text-transform: uppercase;
+    font-style: italic;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.work-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 0.8rem;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    text-transform: uppercase;
+    border-top: 1px solid var(--border-mid);
+    padding-top: 1rem;
+}
+
+.work-hint {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.gallery-item:hover .work-hint {
+    opacity: 1;
+}
+
+/* =========================================
+   Theme Navigation
+   ========================================= */
+.theme-nav { pointer-events: none; }
+
+.theme-indicator {
+    position: fixed;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    mix-blend-mode: difference;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.8rem;
+    pointer-events: auto;
+    white-space: nowrap;
+}
+
+.theme-btn {
+    position: fixed;
+    top: 0; bottom: 0;
+    width: 3vw;
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: none;
+    z-index: 100;
+    pointer-events: auto;
+    mix-blend-mode: difference;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.theme-btn.prev { left: 0; }
+.theme-btn.next { right: 0; }
+
+.theme-btn svg {
+    width: 100%;
+    height: 100vh;
+    opacity: 0.3;
+    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.theme-btn:hover svg {
+    opacity: 1;
+    transform: scaleX(2.5);
+}
+
+/* =========================================
+   Chinese / Red Theme
+   ========================================= */
+.theme-cn .work-title {
+    font-family: 'Noto Serif SC', 'Playfair Display', serif;
+    color: var(--red);
+    font-style: normal;
+    font-weight: 700;
+}
+
+.theme-cn {
+    border-color: rgba(255, 42, 42, 0.2);
+}
+
+.theme-cn .work-meta { color: var(--red); }
+
+/* =========================================
+   Section Shared Styles
+   ========================================= */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 3rem;
+    margin-bottom: 6rem;
+}
+
+.section-label-group {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.section-num {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+}
+
+.section-sep {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: var(--accent);
+}
+
+.section-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 5rem);
+    font-style: italic;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+.section-desc {
+    max-width: 360px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: var(--accent-warm);
+    text-align: right;
+}
+
+/* =========================================
+   Artists Section
+   ========================================= */
+.section-artists {
+    padding: 15vh 8vw;
+    border-top: 1px solid var(--border);
+}
+
+.artists-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+}
+
+.artist-card.single {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6rem;
+    padding: 5rem 4rem;
+}
+
+.artist-card.single .artist-bar {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.artist-card.single .artist-top {
+    flex-shrink: 0;
+    margin-bottom: 0;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.artist-card.single .artist-name {
+    flex-shrink: 0;
+    font-size: clamp(2rem, 4vw, 6rem);
+}
+
+.artist-card.single .artist-discipline {
+    flex-shrink: 0;
+    margin-bottom: 0;
+}
+
+.artist-card {
+    padding: 4rem 3rem;
+    border: 1px solid var(--border);
+    margin: -1px 0 0 -1px; /* collapse borders */
+    position: relative;
+    cursor: none;
+    overflow: hidden;
+    transition: background 0.5s ease;
+}
+
+.artist-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.02);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.artist-card:hover::after { opacity: 1; }
+
+.artist-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+}
+
+.artist-name {
+    font-size: clamp(1.5rem, 3vw, 3.5rem);
+    font-style: italic;
+    margin-bottom: 0.75rem;
+    line-height: 1;
+}
+
+.artist-discipline {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-warm);
+    margin-bottom: 2rem;
+}
+
+.artist-works {
+    display: flex;
+    gap: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 2.5rem;
+}
+
+.artist-works span {
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.6rem;
+    transition: border-color 0.3s ease, color 0.3s ease;
+}
+
+.artist-card:hover .artist-works span {
+    border-color: var(--border-mid);
+    color: var(--text);
+}
+
+.artist-bar {
+    height: 1px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+}
+
+.artist-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.6);
+    transition: left 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.artist-card:hover .artist-bar::after {
+    left: 0;
+}
+
+/* =========================================
+   Journal Section
+   ========================================= */
+.section-journal {
+    padding: 15vh 8vw;
+    border-top: 1px solid var(--border);
+}
+
+.journal-entries {
+    display: flex;
+    flex-direction: column;
+}
+
+.journal-entry {
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    align-items: center;
+    gap: 3rem;
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--border);
+    cursor: none;
+    transition: padding 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.journal-entry::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.015);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.journal-entry:hover::before { opacity: 1; }
+.journal-entry:hover { padding-left: 1.5rem; }
+
+.journal-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.journal-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+.journal-cat {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.5rem;
+    width: fit-content;
+    transition: border-color 0.3s ease;
+}
+
+.journal-entry:hover .journal-cat {
+    border-color: var(--border-mid);
+}
+
+.journal-title {
+    font-size: clamp(1.2rem, 2.5vw, 2.5rem);
+    font-style: italic;
+    margin-bottom: 0.75rem;
+    line-height: 1.1;
+}
+
+.journal-excerpt {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: var(--accent-warm);
+    max-width: 600px;
+}
+
+.journal-arrow {
+    font-size: 1.5rem;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: 'Inter', sans-serif;
+}
+
+.journal-entry:hover .journal-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* =========================================
+   Footer
+   ========================================= */
+.footer {
+    height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.footer h2 {
+    font-size: clamp(3rem, 6vw, 8rem);
+    font-style: italic;
+}
+
+.footer-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+/* =========================================
+   Lenis
+   ========================================= */
+html.lenis { height: auto; }
+
+.lenis.lenis-smooth         { scroll-behavior: auto; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped        { overflow: hidden; }
+
+/* =========================================
+   Responsive
+   ========================================= */
+@media (max-width: 900px) {
+    .header { padding: 2rem; }
+
+    .artists-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .journal-entry {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .journal-arrow { display: none; }
+
+    .gallery-item {
+        width: 85vw;
+        height: 60vh;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2rem;
+    }
+
+    .section-desc { text-align: left; }
+
+    .theme-btn { display: none; }
+    .theme-indicator { bottom: 1.5rem; font-size: 0.65rem; }
+    .scroll-indicator { display: none; }
+    .header_nav { display: none; }
+}
+
+    </style>
+</head>
+
+<body>
+
+    <!-- Filmic Noise Overlay -->
+    <div class="noise" aria-hidden="true"></div>
+
+    <!-- Custom Cursor -->
+    <div class="cursor" aria-hidden="true"></div>
+
+    <!-- Loading Screen -->
+    <div class="loader">
+        <h1 class="loader_title kinetic-text">Archive</h1>
+        <div class="loader_line_container">
+            <div class="loader_line"></div>
+        </div>
+        <div class="loader_sub">
+            <div class="loader_number">0</div>
+            <div class="loader_subtitle">percent</div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Menu -->
+    <div class="menu" role="dialog" aria-label="Navigation menu">
+        <div class="menu_content">
+            <a href="#gallery" class="menu_link kinetic-text" data-cursor="hover" data-target="#gallery">Works</a>
+            <a href="#artists"    class="menu_link kinetic-text" data-cursor="hover" data-target="#artists">Artists</a>
+            <a href="#journal"    class="menu_link kinetic-text" data-cursor="hover" data-target="#journal">Journal</a>
+        </div>
+        <div class="menu_footer">
+            <span>Studio Archive © 2024</span>
+            <span>Keum / Sung / ISH Y9</span>
+        </div>
+    </div>
+
+    <!-- UI Overlay -->
+    <header class="header">
+        <div class="logo kinetic-text">Studio.</div>
+
+        <button class="menu_toggle" data-cursor="hover" aria-label="Toggle menu">Menu</button>
+    </header>
+
+    <!-- WebGL Background Canvas -->
+    <canvas class="webgl" aria-hidden="true"></canvas>
+
+    <!-- Theme Navigation -->
+    <div class="theme-nav" aria-label="Theme navigation">
+        <button class="theme-btn prev" data-cursor="hover" aria-label="Previous theme">
+            <svg viewBox="0 0 10 100" preserveAspectRatio="none">
+                <path d="M 10 0 L 0 50 L 10 100" stroke="currentColor" stroke-width="0.5" fill="none" />
+            </svg>
+        </button>
+        <div class="theme-indicator">THEME: DIGITAL 1</div>
+        <button class="theme-btn next" data-cursor="hover" aria-label="Next theme">
+            <svg viewBox="0 0 10 100" preserveAspectRatio="none">
+                <path d="M 0 0 L 10 50 L 0 100" stroke="currentColor" stroke-width="0.5" fill="none" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator" aria-hidden="true">
+        <div class="scroll-indicator_line"></div>
+        <span>Scroll</span>
+    </div>
+
+    <!-- Scrollable DOM Content -->
+    <main class="main">
+
+        <!-- Hero -->
+        <div class="hero" id="top">
+
+            <h1 class="hero_title kinetic-text">Testing.</h1>
+            <p class="hero_subtitle kinetic-text">Scroll to experience the archive.</p>
+        </div>
+
+        <!-- Exhibition: Gallery -->
+        <div class="gallery-wrapper" id="gallery">
+
+            <!-- Digital Theme 1 -->
+            <div class="gallery theme-digital-1 active" data-theme="digital-1">
+                <div class="gallery-item" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.001</span>
+                        <span class="work-meta">[ GRID_DISTORTION ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">WORK 1</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>Spatial alignment disruption via hover.</p>
+                        <span class="work-hint">Click to interact</span>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.002</span>
+                        <span class="work-meta">[ KINETIC_DOTS ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">EDITING...</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>Filmic entropy scaling.</p>
+                        <span class="work-hint">Click to toggle physics</span>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.003</span>
+                        <span class="work-meta">[ MONOLITH ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">WORK 3</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>Geometric fragmentation protocol.</p>
+                        <span class="work-hint">Click to interact</span>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.004</span>
+                        <span class="work-meta">[ BARCODE_LINES ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">WORK 4</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>High-frequency data expansion.</p>
+                        <span class="work-hint">Click to rotate axis</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital Theme 2 -->
+            <div class="gallery theme-digital-2 hidden" data-theme="digital-2">
+                <div class="gallery-item theme-cn" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.005</span>
+                        <span class="work-meta">[ INK_BLEED ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">WORK 5</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>Fluid entropy over static canvas.</p>
+                        <span class="work-hint">Click to freeze</span>
+                    </div>
+                </div>
+
+                <div class="gallery-item theme-cn" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.006</span>
+                        <span class="work-meta">[ THE_STAMP ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">WORK 6</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>Rigid absolute fragmentation.</p>
+                        <span class="work-hint">Click to shatter</span>
+                    </div>
+                </div>
+
+                <div class="gallery-item theme-cn" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.007</span>
+                        <span class="work-meta">[ KINETIC_POLYGON ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">WORK 7</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>Bifurcation and balance disruption.</p>
+                        <span class="work-hint">Click to transform</span>
+                    </div>
+                </div>
+
+                <div class="gallery-item theme-cn" data-cursor="canvas">
+                    <div class="work-header">
+                        <span class="work-id">SYS.008</span>
+                        <span class="work-meta">[ RED_NOISE ]</span>
+                    </div>
+                    <div class="work-body">
+                        <h2 class="work-title kinetic-text">WORK 8</h2>
+                    </div>
+                    <div class="work-footer">
+                        <p>Aggressive static amplification.</p>
+                        <span class="work-hint">Click to order</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Artists Section -->
+        <section class="section-artists" id="artists">
+            <div class="section-header">
+                <div class="section-label-group">
+                    <span class="section-num">01</span>
+                    <span class="section-sep">/</span>
+                    <span class="section-name kinetic-text">Worker</span>
+                </div>
+                <p class="section-desc">Digital project Ui temp for my other projects.</p>
+            </div>
+
+            <div class="artists-grid">
+                <div class="artist-card single" data-cursor="hover">
+                    <div class="artist-top">
+                        <span class="artist-id">A.01</span>
+                        <span class="artist-year">2024</span>
+                    </div>
+                    <h3 class="artist-name kinetic-text">windowopener</h3>
+                    <p class="artist-discipline">Github</p>
+                    <div class="artist-bar"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journal Section -->
+        <section class="section-journal" id="journal">
+            <div class="section-header">
+                <div class="section-label-group">
+                    <span class="section-num">02</span>
+                    <span class="section-sep">/</span>
+                    <span class="section-name kinetic-text">Idk what to call ts.</span>
+                </div>
+                <p class="section-desc">Practicing and Exploring Web Ui Skills</p>
+            </div>
+
+            <div class="journal-entries">
+                <article class="journal-entry" data-cursor="hover">
+                    <div class="journal-meta">
+                        <span class="journal-date">2011.01.11</span>
+                        <span class="journal-cat">Rah</span>
+                    </div>
+                    <div class="journal-body">
+                        <h3 class="journal-title kinetic-text">Project 01</h3>
+                        <p class="journal-excerpt">Anything wanna add?</p>
+                    </div>
+                    <div class="journal-arrow">→</div>
+                </article>
+
+                <article class="journal-entry" data-cursor="hover">
+                    <div class="journal-meta">
+                        <span class="journal-date">2026.04.24</span>
+                        <span class="journal-cat">Hi</span>
+                    </div>
+                    <div class="journal-body">
+                        <h3 class="journal-title kinetic-text">Project 02</h3>
+                        <p class="journal-excerpt">Keum</p>
+                    </div>
+                    <div class="journal-arrow">→</div>
+                </article>
+
+                <article class="journal-entry" data-cursor="hover">
+                    <div class="journal-meta">
+                        <span class="journal-date">2026.02.26</span>
+                        <span class="journal-cat">ily</span>
+                    </div>
+                    <div class="journal-body">
+                        <h3 class="journal-title kinetic-text">Project 03</h3>
+                        <p class="journal-excerpt">Hm: antigravity</p>
+                    </div>
+                    <div class="journal-arrow">→</div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div class="footer">
+            <h2 class="kinetic-text">END.</h2>
+            <p class="footer-sub">Studio Archive / Pls don't copy ts🥀 / 2024</p>
+        </div>
+
+    </main>
+
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    // ==========================================
+    // 1. Smooth Scroll — Lenis + GSAP Ticker
+    //    (correct pattern: no manual raf loop)
+    // ==========================================
+    const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    });
+
+    // Sync lenis with GSAP ticker so ScrollTrigger works correctly
+    gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+    gsap.ticker.lagSmoothing(0);
+    lenis.on('scroll', ScrollTrigger.update);
+    lenis.stop(); // hold until loader finishes
+
+
+    // ==========================================
+    // 2. Kinetic Text Utility
+    // ==========================================
+    function splitKineticText(el) {
+        const text = el.textContent.trim();
+        el.innerHTML = '';
+        text.split(' ').forEach((word, wi, arr) => {
+            const wordWrap = document.createElement('span');
+            wordWrap.style.cssText = 'display:inline-block;white-space:pre;';
+
+            word.split('').forEach(char => {
+                const cWrap = document.createElement('span');
+                cWrap.className = 'char-wrap';
+                const cEl = document.createElement('span');
+                cEl.className = 'char';
+                cEl.textContent = char;
+                cWrap.appendChild(cEl);
+                wordWrap.appendChild(cWrap);
+            });
+
+            el.appendChild(wordWrap);
+            // Add space between words (but not after the last word)
+            if (wi < arr.length - 1) {
+                el.appendChild(document.createTextNode(' '));
+            }
+        });
+
+        el.style.opacity    = '1';
+        el.style.visibility = 'visible';
+    }
+
+    document.querySelectorAll('.kinetic-text').forEach(splitKineticText);
+
+
+    // ==========================================
+    // 3. Custom Cursor
+    // ==========================================
+    const cursor = document.querySelector('.cursor');
+    const xTo = gsap.quickTo(cursor, 'x', { duration: 0.2, ease: 'power3' });
+    const yTo = gsap.quickTo(cursor, 'y', { duration: 0.2, ease: 'power3' });
+
+    window.addEventListener('pointermove', (e) => { xTo(e.clientX); yTo(e.clientY); });
+
+    document.querySelectorAll('[data-cursor]').forEach(el => {
+        const type = el.getAttribute('data-cursor');
+        el.addEventListener('mouseenter', () => cursor.classList.add(`hover-${type}`));
+        el.addEventListener('mouseleave', () => cursor.classList.remove(`hover-${type}`));
+    });
+
+
+    // ==========================================
+    // 4. Loader Animation
+    // ==========================================
+    const loaderTitle = document.querySelector('.loader_title');
+
+    // Move loader title to body so it doesn't get clipped by the loader's
+    // translateY(-100vh) transition
+    if (loaderTitle?.parentElement?.classList.contains('loader')) {
+        document.body.appendChild(loaderTitle);
+    }
+
+    const loaderLine   = document.querySelector('.loader_line');
+    const loaderNumber = document.querySelector('.loader_number');
+    const loaderSub    = document.querySelector('.loader_sub');
+    let   loadProgress = { val: 0 };
+
+    const loaderTl = gsap.timeline({
+        onComplete: () => {
+            // Enable scroll and animate hero
+            lenis.start();
+
+
+            gsap.to('.hero_title .char',    { y: '0%', duration: 1.2, stagger: 0.03, ease: 'power4.out', delay: 0.1 });
+            gsap.to('.hero_subtitle .char', { y: '0%', duration: 1.2, stagger: 0.01, ease: 'power4.out', delay: 0.3 });
+
+            // Show scroll indicator
+            setTimeout(() => {
+                document.querySelector('.scroll-indicator')?.classList.add('visible');
+            }, 800);
+
+            // Refresh ScrollTrigger now that layout is final
+            ScrollTrigger.refresh();
+        }
+    });
+
+    loaderTl
+        .to('.loader_title .char', {
+            y: '0%',
+            duration: 1,
+            stagger: 0.05,
+            ease: 'power4.out'
+        })
+        .to(loaderSub, { opacity: 1, duration: 0.5 }, '-=0.5')
+        .to(loadProgress, {
+            val: 100,
+            duration: 2,
+            ease: 'power2.inOut',
+            onUpdate: () => {
+                loaderNumber.textContent = Math.round(loadProgress.val);
+                loaderLine.style.width   = loadProgress.val + '%';
+            }
+        })
+        .addLabel('exit')
+        .to('.loader', {
+            y: '-100vh',
+            duration: 1.5,
+            ease: 'power4.inOut'
+        }, 'exit')
+        .to('.loader_title', {
+            top:      '3.6rem',
+            fontSize: '1.8rem',
+            duration: 1.5,
+            ease:     'power4.inOut'
+        }, 'exit');
+
+
+    // ==========================================
+    // 5. Scroll-triggered Text Animations
+    // ==========================================
+
+    // Gallery work titles
+    document.querySelectorAll('.gallery-item').forEach(item => {
+        const chars = item.querySelectorAll('.work-title .char');
+        if (!chars.length) return;
+        gsap.to(chars, {
+            y: '0%',
+            duration: 1.2,
+            stagger: 0.04,
+            ease: 'power4.out',
+            scrollTrigger: {
+                trigger: item,
+                start:   'top 78%',
+                toggleActions: 'play none none none'
+            }
+        });
+    });
+
+    // Footer
+    gsap.to('.footer .char', {
+        y: '0%',
+        duration: 1,
+        stagger: 0.06,
+        ease: 'power4.out',
+        scrollTrigger: { trigger: '.footer', start: 'top 80%' }
+    });
+    ScrollTrigger.create({
+        trigger: '.footer',
+        start: 'top 60%',
+        onEnter: () => {
+            document.querySelector('.footer-sub').style.opacity = '1';
+        }
+    });
+
+    // Section headings (Artists, Journal)
+    document.querySelectorAll('.section-name.kinetic-text').forEach(el => {
+        gsap.to(el.querySelectorAll('.char'), {
+            y: '0%',
+            duration: 1.2,
+            stagger: 0.04,
+            ease: 'power4.out',
+            scrollTrigger: { trigger: el, start: 'top 85%' }
+        });
+    });
+
+    // Artist names
+    document.querySelectorAll('.artist-name.kinetic-text').forEach(el => {
+        gsap.to(el.querySelectorAll('.char'), {
+            y: '0%',
+            duration: 1,
+            stagger: 0.03,
+            ease: 'power4.out',
+            scrollTrigger: { trigger: el.closest('.artist-card'), start: 'top 85%' }
+        });
+    });
+
+    // Artist cards fade in
+    gsap.utils.toArray('.artist-card').forEach((card, i) => {
+        gsap.from(card, {
+            opacity: 0,
+            y: 30,
+            duration: 0.9,
+            delay: (i % 2) * 0.15,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: card, start: 'top 88%' }
+        });
+    });
+
+    // Journal titles
+    document.querySelectorAll('.journal-title.kinetic-text').forEach(el => {
+        gsap.to(el.querySelectorAll('.char'), {
+            y: '0%',
+            duration: 1,
+            stagger: 0.025,
+            ease: 'power4.out',
+            scrollTrigger: { trigger: el.closest('.journal-entry'), start: 'top 85%' }
+        });
+    });
+
+    // Journal entries
+    gsap.utils.toArray('.journal-entry').forEach((entry, i) => {
+        gsap.from(entry, {
+            opacity: 0,
+            y: 20,
+            duration: 0.9,
+            delay: i * 0.1,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: entry, start: 'top 88%' }
+        });
+    });
+
+    // Section descriptions
+    gsap.utils.toArray('.section-desc').forEach(el => {
+        gsap.from(el, {
+            opacity: 0,
+            y: 15,
+            duration: 1,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: el, start: 'top 88%' }
+        });
+    });
+
+    // Hide scroll indicator when scrolled past hero
+    ScrollTrigger.create({
+        trigger: '.gallery-wrapper',
+        start: 'top 60%',
+        onEnter: () => {
+            document.querySelector('.scroll-indicator')?.classList.remove('visible');
+        },
+        onLeaveBack: () => {
+            document.querySelector('.scroll-indicator')?.classList.add('visible');
+        }
+    });
+
+
+    // ==========================================
+    // 6. Menu — Toggle + Functional Links
+    // ==========================================
+    const menuToggle = document.querySelector('.menu_toggle');
+    let isMenuOpen   = false;
+
+    function openMenu() {
+        isMenuOpen = true;
+        menuToggle.textContent = 'Close';
+        lenis.stop();
+        gsap.to('.menu', { top: 0, duration: 1, ease: 'power4.inOut' });
+        // Stagger per link (not per char) for performance
+        document.querySelectorAll('.menu_link').forEach((link, i) => {
+            gsap.to(link.querySelectorAll('.char'), {
+                y: '0%',
+                duration: 1,
+                stagger: 0.02,
+                ease: 'power4.out',
+                delay: 0.35 + i * 0.08
+            });
+        });
+    }
+
+    function closeMenu(afterClose) {
+        isMenuOpen = false;
+        menuToggle.textContent = 'Menu';
+        gsap.to('.menu', {
+            top: '-100vh',
+            duration: 0.9,
+            ease: 'power4.inOut',
+            onComplete: afterClose
+        });
+        gsap.to('.menu_link .char', { y: '100%', duration: 0.4, stagger: 0.01 });
+        lenis.start();
+    }
+
+    menuToggle.addEventListener('click', () => {
+        isMenuOpen ? closeMenu() : openMenu();
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMenuOpen) closeMenu();
+    });
+
+    // Functional menu link scrolling
+    document.querySelectorAll('.menu_link[data-target]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = link.getAttribute('data-target');
+
+            closeMenu(() => {
+                if (target === '#top') {
+                    lenis.scrollTo(0, { duration: 2.4, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+                } else {
+                    const targetEl = document.querySelector(target);
+                    if (targetEl) {
+                        lenis.scrollTo(targetEl, {
+                            offset:   -80,
+                            duration: 2.4,
+                            easing:   (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
+                        });
+                    }
+                }
+            });
+        });
+    });
+
+
+    // ==========================================
+    // 7. WebGL — Three.js Scene
+    // ==========================================
+    const canvas      = document.querySelector('.webgl');
+    let   vw          = window.innerWidth;
+    let   vh          = window.innerHeight;
+    const perspective = 800;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(vw, vh);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const fov    = (180 * (2 * Math.atan(vh / 2 / perspective))) / Math.PI;
+    const camera = new THREE.PerspectiveCamera(fov, vw / vh, 1, 1000);
+    camera.position.z = perspective;
+
+    const scene = new THREE.Scene();
+
+    // ---- Shader Material ----
+    const shaderMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            uColor:         { value: new THREE.Color('#2a2a2a') },
+            uHover:         { value: 0.0 },
+            uMouse:         { value: new THREE.Vector2(0.5, 0.5) },
+            uTime:          { value: 0.0 },
+            uIndex:         { value: 0.0 },
+            uClick:         { value: 0.0 },
+            uPhysicsActive: { value: 0.0 },
+            uPhysicsTime:   { value: 0.0 }
+        },
+        vertexShader: `
+            uniform float uHover;
+            uniform vec2  uMouse;
+            varying vec2  vUv;
+
+            void main() {
+                vUv = uv;
+                vec3 pos = position;
+                float dist  = distance(uv, uMouse);
+                float bulge = smoothstep(0.8, 0.0, dist) * 40.0 * uHover;
+                pos.z += bulge;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3  uColor;
+            uniform float uHover;
+            uniform vec2  uMouse;
+            uniform float uTime;
+            uniform float uIndex;
+            uniform float uClick;
+            uniform float uPhysicsActive;
+            uniform float uPhysicsTime;
+            varying vec2  vUv;
+
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+            }
+
+            void main() {
+                vec2  uv        = vUv;
+                float dist      = distance(uv, vec2(0.5));
+                float influence = smoothstep(0.8, 0.0, dist) * uHover;
+                vec3  finalColor = uColor;
+                float pattern   = 0.0;
+                vec2  centerUv  = uv - 0.5;
+
+                if (uIndex < 0.5) {
+                    // WORK 1 — Distorted Grid
+                    uv.y = mix(uv.y, 0.5, uClick);
+                    uv  += sin(uv.yx * 20.0 + uTime) * 0.05 * influence;
+                    vec2 grid = fract(uv * 20.0);
+                    pattern   = step(0.95, grid.x) + step(0.95, grid.y);
+                    finalColor = mix(uColor, vec3(0.8), pattern * 0.3);
+                }
+                else if (uIndex < 1.5) {
+                    // WORK 2 — Physics Dots
+                    float gridRes    = 12.0;
+                    float totalPattern = 0.0;
+                    for (float x = -1.0; x <= 1.0; x++) {
+                        for (float y = -1.0; y <= 4.0; y++) {
+                            vec2 neighborId = floor(uv * gridRes) + vec2(x, y);
+                            vec2 basePos    = (neighborId + 0.5) / gridRes;
+                            vec2 currentPos = basePos;
+                            if (uPhysicsActive > 0.01) {
+                                float fallSpeed = random(neighborId) * 0.3 + 0.2;
+                                currentPos.y  -= uPhysicsTime * fallSpeed;
+                                vec2  toMouse  = uMouse - currentPos;
+                                float d        = length(toMouse);
+                                if (d < 0.25) {
+                                    float force = pow(1.0 - d / 0.25, 2.0);
+                                    currentPos -= normalize(toMouse) * force * 0.2;
+                                }
+                                currentPos += (vec2(
+                                    random(neighborId + uTime * 0.1),
+                                    random(neighborId - uTime * 0.1)
+                                ) - 0.5) * 0.01;
+                                currentPos = mix(basePos, currentPos, uPhysicsActive);
+                            }
+                            float d2 = distance(uv, currentPos);
+                            totalPattern += smoothstep(0.025, 0.02, d2);
+                        }
+                    }
+                    pattern    = clamp(totalPattern, 0.0, 1.0);
+                    finalColor = mix(uColor, vec3(0.9, 0.1, 0.1), pattern);
+                }
+                else if (uIndex < 2.5) {
+                    // WORK 3 — Monolith Circle
+                    float band      = floor(uv.y * 30.0);
+                    float tearOffset = (random(vec2(band, floor(uTime * 20.0))) - 0.5) * uClick * 0.4;
+                    uv.x  += tearOffset;
+                    uv    += (uv - uMouse) * influence * 0.6;
+                    float circle = step(0.3, distance(uv, vec2(0.5)));
+                    pattern      = 1.0 - circle;
+                    finalColor   = mix(uColor, vec3(0.9), pattern * (0.15 + influence * 0.4));
+                }
+                else if (uIndex < 3.5) {
+                    // WORK 4 — Barcode Lines
+                    vec2 rotUv  = mix(uv, vec2(uv.y, uv.x), uClick);
+                    rotUv.x    += uTime * uClick * 5.0;
+                    float lineSpacing = 50.0 + influence * 100.0;
+                    pattern    = step(0.5, sin(rotUv.x * lineSpacing));
+                    finalColor = mix(uColor, vec3(0.7), pattern * (0.1 + influence * 0.2 + uClick * 0.5));
+                }
+                else if (uIndex < 4.5) {
+                    // WORK 5 — Ink Bleed
+                    float localTime = uTime * (1.0 - uClick);
+                    float n = random(uv * 5.0 + localTime * 0.1);
+                    uv     += n * 0.1 * influence;
+                    float ink    = smoothstep(0.4, 0.6, random(uv * 2.0));
+                    vec3  inkCol = mix(vec3(0.8, 0.1, 0.1), vec3(1.0), uClick);
+                    finalColor   = mix(uColor, inkCol, ink * (0.5 + influence + uClick));
+                }
+                else if (uIndex < 5.5) {
+                    // WORK 6 — The Stamp
+                    vec2  gridUv    = floor(centerUv * 15.0) / 15.0;
+                    vec2  explodeDir = normalize(gridUv + vec2(0.001)) * random(gridUv);
+                    vec2  stampUv   = centerUv - explodeDir * uClick * 2.0;
+                    float box       = step(abs(stampUv.x), 0.3) * step(abs(stampUv.y), 0.3);
+                    float glitch    = step(0.9, random(uv * 50.0 + uTime)) * influence;
+                    pattern    = max(0.0, box - glitch);
+                    finalColor = mix(uColor, vec3(0.9, 0.1, 0.1), pattern);
+                }
+                else if (uIndex < 6.5) {
+                    // WORK 7 — Kinetic Polygon
+                    vec2  p = centerUv * 2.0;
+                    float angleRot = uTime * 0.5 + influence * 3.0 + uClick * 10.0;
+                    mat2  rot = mat2(cos(angleRot), -sin(angleRot), sin(angleRot), cos(angleRot));
+                    p = rot * p;
+                    float a    = atan(p.x, p.y);
+                    float r    = length(p);
+                    float PI   = 3.14159265359;
+                    float sides = 6.0;
+                    float poly  = cos(floor(0.5 + a / (2.0 * PI / sides)) * (2.0 * PI / sides) - a) * r;
+                    float starDeform = 1.0 - uClick * 0.6 * (0.5 + 0.5 * sin(a * sides));
+                    poly  /= starDeform;
+                    pattern    = step(poly, 0.5);
+                    float hollow = step(poly, 0.2 * uClick);
+                    pattern    = max(0.0, pattern - hollow);
+                    finalColor = mix(uColor, vec3(0.9, 0.1, 0.1), pattern);
+                }
+                else {
+                    // WORK 8 — Red Data (Chaos → Order)
+                    float band2 = floor(uv.y * 30.0);
+                    float tearOff = (random(vec2(band2, floor(uTime * 20.0))) - 0.5) * 0.08 * influence;
+                    uv.x += tearOff;
+                    uv.y += random(vec2(uv.x, uTime)) * 0.1 * influence * (1.0 - uClick);
+                    vec2  typoGrid  = floor(uv * 15.0);
+                    float typoBlock = step(0.8, random(typoGrid + floor(uTime * 5.0))) * step(0.2, random(typoGrid.yx));
+                    float noisePattern = random(uv * 100.0);
+                    float orderPattern = fract(uv.y * 20.0);
+                    pattern = mix(noisePattern, orderPattern, uClick);
+                    float finalTypo = mix(typoBlock * 0.8, 0.0, uClick);
+                    float combined  = max(pattern * (0.2 + influence * 0.5), finalTypo);
+                    finalColor = mix(uColor, vec3(0.9, 0.1, 0.1), combined);
+                }
+
+                // Border
+                float bx = step(0.01, vUv.x) * step(vUv.x, 0.99);
+                float by = step(0.015, vUv.y) * step(vUv.y, 0.985);
+                finalColor = mix(vec3(0.05), finalColor, bx * by);
+
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `
+    });
+
+    // ---- Build meshes from DOM items ----
+    const domItems = document.querySelectorAll('.gallery-item');
+    const meshes   = [];
+
+    domItems.forEach((el, index) => {
+        const bounds   = el.getBoundingClientRect();
+        const geometry = new THREE.PlaneGeometry(bounds.width, bounds.height, 32, 32);
+        const mat      = shaderMaterial.clone();
+        mat.uniforms.uColor.value = new THREE.Color(index % 2 === 0 ? '#1a1a1a' : '#222222');
+        mat.uniforms.uIndex.value = parseFloat(index);
+        const mesh = new THREE.Mesh(geometry, mat);
+        scene.add(mesh);
+        meshes.push({ mesh, el, uniforms: mat.uniforms, isPhysicsActive: false });
+    });
+
+    // ---- Raycaster ----
+    const raycaster      = new THREE.Raycaster();
+    const mouseNorm      = new THREE.Vector2(-10, -10);
+
+    window.addEventListener('pointermove', (e) => {
+        mouseNorm.x =  (e.clientX / vw) * 2 - 1;
+        mouseNorm.y = -(e.clientY / vh) * 2 + 1;
+    });
+
+    // ---- Click Interaction ----
+    window.addEventListener('click', () => {
+        raycaster.setFromCamera(mouseNorm, camera);
+        const visibleMeshes = meshes
+            .filter(m => !m.el.closest('.gallery').classList.contains('hidden'))
+            .map(m => m.mesh);
+        const hits = raycaster.intersectObjects(visibleMeshes);
+
+        if (!hits.length) return;
+        const hitItem = meshes.find(m => m.mesh === hits[0].object);
+        if (!hitItem) return;
+
+        if (hitItem.uniforms.uIndex.value === 1.0) {
+            // WORK 2 — toggle physics
+            hitItem.isPhysicsActive = !hitItem.isPhysicsActive;
+            gsap.to(hitItem.uniforms.uPhysicsActive, {
+                value:    hitItem.isPhysicsActive ? 1.0 : 0.0,
+                duration: 1.2,
+                ease:     hitItem.isPhysicsActive ? 'power2.inOut' : 'elastic.out(1, 0.5)'
+            });
+            if (!hitItem.isPhysicsActive) {
+                gsap.to(hitItem.uniforms, { uPhysicsTime: 0.0, duration: 1.0 });
+            }
+        } else {
+            gsap.to(hitItem.uniforms.uClick, { value: 1.0, duration: 0.15,
+                onComplete: () => {
+                    gsap.to(hitItem.uniforms.uClick, { value: 0.0, duration: 1.0, ease: 'power4.out' });
+                }
+            });
+        }
+    });
+
+    // ---- Theme Switching ----
+    const themes       = ['digital-1', 'digital-2'];
+    let   themeIndex   = 0;
+    const themeIndicator = document.querySelector('.theme-indicator');
+
+    function switchTheme(dir) {
+        const oldName    = themes[themeIndex];
+        const oldGallery = document.querySelector(`.theme-${oldName}`);
+
+        themeIndex = (themeIndex + dir + themes.length) % themes.length;
+        const newName    = themes[themeIndex];
+        const newGallery = document.querySelector(`.theme-${newName}`);
+
+        lenis.stop();
+
+        gsap.to(oldGallery, {
+            opacity: 0,
+            duration: 0.5,
+            onComplete: () => {
+                oldGallery.classList.add('hidden');
+                newGallery.classList.remove('hidden');
+                newGallery.style.opacity = '0';
+
+                // Wait one frame so display:flex kicks in before measuring
+                requestAnimationFrame(() => {
+                    // Re-sync geometry for newly visible meshes
+                    meshes.forEach(item => {
+                        if (!item.el.closest('.gallery').classList.contains('hidden')) {
+                            const bounds = item.el.getBoundingClientRect();
+                            item.mesh.geometry.dispose();
+                            item.mesh.geometry = new THREE.PlaneGeometry(
+                                bounds.width, bounds.height, 32, 32
+                            );
+                        }
+                    });
+
+                    // Animate newly visible work title chars
+                    newGallery.querySelectorAll('.work-title .char').forEach(c => {
+                        c.style.transform = 'translateY(105%)';
+                    });
+
+                    gsap.to(newGallery, {
+                        opacity: 1,
+                        duration: 0.6,
+                        onComplete: () => {
+                            lenis.scrollTo(0, { immediate: true });
+                            lenis.start();
+                            ScrollTrigger.refresh();
+                        }
+                    });
+
+                    // Stagger work title reveals
+                    newGallery.querySelectorAll('.gallery-item').forEach((item, i) => {
+                        gsap.to(item.querySelectorAll('.work-title .char'), {
+                            y: '0%',
+                            duration: 1.2,
+                            stagger: 0.04,
+                            ease: 'power4.out',
+                            delay: i * 0.1
+                        });
+                    });
+
+                    // Update indicator
+                    const displayName = newName.replace('-', ' ').toUpperCase();
+                    if (themeIndicator) themeIndicator.textContent = `THEME: ${displayName}`;
+                });
+            }
+        });
+    }
+
+    const prevBtn = document.querySelector('.theme-btn.prev');
+    const nextBtn = document.querySelector('.theme-btn.next');
+    prevBtn?.addEventListener('click', () => switchTheme(-1));
+    nextBtn?.addEventListener('click', () => switchTheme(+1));
+
+    // ---- Resize (debounced) ----
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            vw = window.innerWidth;
+            vh = window.innerHeight;
+
+            renderer.setSize(vw, vh);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            camera.fov    = (180 * (2 * Math.atan(vh / 2 / perspective))) / Math.PI;
+            camera.aspect = vw / vh;
+            camera.updateProjectionMatrix();
+
+            meshes.forEach(item => {
+                if (!item.el.closest('.gallery').classList.contains('hidden')) {
+                    const bounds = item.el.getBoundingClientRect();
+                    item.mesh.geometry.dispose();
+                    item.mesh.geometry = new THREE.PlaneGeometry(
+                        bounds.width, bounds.height, 32, 32
+                    );
+                }
+            });
+
+            ScrollTrigger.refresh();
+        }, 200);
+    });
+
+    // ---- Render Loop ----
+    const clock = new THREE.Clock();
+
+    function render() {
+        const elapsed = clock.getElapsedTime();
+        const delta   = clock.getDelta ? Math.min(clock.getDelta(), 0.05) : 0.016;
+
+        // Update raycaster every frame with currently visible meshes only
+        const visibleMeshes = meshes
+            .filter(m => !m.el.closest('.gallery').classList.contains('hidden'))
+            .map(m => m.mesh);
+
+        raycaster.setFromCamera(mouseNorm, camera);
+        const intersects = raycaster.intersectObjects(visibleMeshes);
+
+        meshes.forEach(item => {
+            const bounds  = item.el.getBoundingClientRect();
+            const isHidden = item.el.closest('.gallery').classList.contains('hidden');
+
+            if (isHidden) {
+                item.mesh.position.y = 99999; // park off-screen
+                return;
+            }
+
+            // DOM → WebGL position sync
+            item.mesh.position.x = bounds.left - vw / 2 + bounds.width  / 2;
+            item.mesh.position.y = -bounds.top + vh  / 2 - bounds.height / 2;
+
+            // Time
+            item.uniforms.uTime.value = elapsed;
+
+            // Physics time (use frame delta, not hardcoded 0.016)
+            if (item.isPhysicsActive) {
+                item.uniforms.uPhysicsTime.value += 0.016;
+            } else if (item.uniforms.uPhysicsActive.value < 0.01) {
+                item.uniforms.uPhysicsTime.value = 0.0;
+            }
+
+            // Hover / mouse UV
+            const hit = intersects.find(i => i.object === item.mesh);
+            if (hit) {
+                gsap.to(item.uniforms.uHover,        { value: 1.0,     duration: 0.5, ease: 'power2.out' });
+                gsap.to(item.uniforms.uMouse.value,  { x: hit.uv.x, y: hit.uv.y, duration: 0.2 });
+            } else {
+                gsap.to(item.uniforms.uHover,        { value: 0.0,     duration: 0.8, ease: 'power2.out' });
+            }
+        });
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(render);
+    }
+
+    render();
+
+});
+
+    </script>
+</body>
+
+</html>
